@@ -81,3 +81,28 @@ class ChallengeViewSet(viewsets.ModelViewSet):
                  "error": "No attempts logged.",
                  "attempts_needed": 3
              }, status=status.HTTP_403_FORBIDDEN)
+
+    @action(detail=True, methods=['get'])
+    def leaderboard(self, request, pk=None):
+        """
+        Fetches the top 10 fastest execution times for a specific challenge.
+        """
+        challenge = self.get_object()
+        
+        # Query metrics: must be completed, ordered by lowest time, limit to 10
+        top_metrics = UserMetrics.objects.filter(
+            challenge=challenge, 
+            completed=True,
+            best_time__isnull=False
+        ).select_related('user').order_by('best_time')[:10]
+
+        # Format the data for the frontend
+        leaderboard_data = [
+            {
+                "username": metric.user.username, # Make sure your user model uses 'username' or adjust to 'email'
+                "best_time": metric.best_time,
+                "attempts": metric.total_attempts
+            } for metric in top_metrics
+        ]
+
+        return Response(leaderboard_data, status=status.HTTP_200_OK)
