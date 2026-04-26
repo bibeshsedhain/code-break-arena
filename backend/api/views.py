@@ -9,12 +9,13 @@ from .permissions import IsMakerOrReadOnly
 class ChallengeViewSet(viewsets.ModelViewSet):
     queryset = Challenge.objects.all()
     serializer_class = ChallengeSerializer
-    # Apply the custom Maker permission
+    
+    # Apply the custom permission to guard edit/delete routes
     permission_classes = [IsAuthenticatedOrReadOnly, IsMakerOrReadOnly] 
 
     def perform_create(self, serializer):
-        # Automatically link the logged-in user as the 'maker'
-        serializer.save(maker=self.request.user)
+        # FIX: Ensure we use 'creator' to match your Django model
+        serializer.save(creator=self.request.user)
 
     @action(detail=True, methods=['get'])
     def reveal(self, request, pk=None):
@@ -82,8 +83,9 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             } for m in metrics
         ]
 
-        # Get the Maker Portfolio (Using the 'maker' field)
-        my_challenges = Challenge.objects.filter(maker=user).values(
+        # Get the Maker Portfolio 
+        # FIX: Using 'creator=user' to match the database field
+        my_challenges = Challenge.objects.filter(creator=user).values(
             'challenge_id', 'title', 'difficulty'
         )
 
