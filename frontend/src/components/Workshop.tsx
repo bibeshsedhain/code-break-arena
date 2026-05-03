@@ -1,15 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import apiClient from '../api';
 import Editor from '@monaco-editor/react';
+import {
+    Box,
+    Button,
+    Container,
+    Typography,
+    TextField,
+    MenuItem,
+    Paper,
+    Stack,
+    IconButton,
+    Checkbox,
+    FormControlLabel,
+    CircularProgress,
+    Card,
+} from '@mui/material';
+
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import SaveIcon from '@mui/icons-material/Save';
+
+import apiClient from '../api';
+
+const difficulties = [
+    { value: 'EZ', label: 'Easy' },
+    { value: 'MD', label: 'Medium' },
+    { value: 'HD', label: 'Hard' },
+];
 
 export const Workshop: React.FC = () => {
     const navigate = useNavigate();
-    // 1. Grab the ID from the URL if it exists
-    const { challengeId } = useParams<{ challengeId: string }>(); 
-    
+    const { challengeId } = useParams<{ challengeId: string }>();
+
     const [isPublishing, setIsPublishing] = useState(false);
-    const [isLoading, setIsLoading] = useState(!!challengeId); // Loading state for editing
+    const [isLoading, setIsLoading] = useState(!!challengeId);
 
     // Form State
     const [title, setTitle] = useState('');
@@ -17,49 +44,38 @@ export const Workshop: React.FC = () => {
     const [difficulty, setDifficulty] = useState('MD');
     const [starterCode, setStarterCode] = useState('def solution():\n    pass');
     const [solutionCode, setSolutionCode] = useState('def solution():\n    return True');
-    
     const [testCases, setTestCases] = useState<any[]>([
         { input_data: 'print(solution())', expected_output: 'True', hidden_flag: false }
     ]);
 
-    // 2. Fetch existing challenge data if we are in "Edit Mode"
     useEffect(() => {
         const fetchExistingChallenge = async () => {
             try {
                 const response = await apiClient.get(`/challenges/${challengeId}/`);
                 const data = response.data;
-                
-                // Pre-fill the form
                 setTitle(data.title);
                 setDescription(data.description);
                 setDifficulty(data.difficulty);
                 setStarterCode(data.starter_code);
                 setSolutionCode(data.solution_code);
-                
-                // Pre-fill test cases (if any exist)
-                if (data.test_cases && data.test_cases.length > 0) {
-                    setTestCases(data.test_cases);
-                }
+                if (data.test_cases?.length > 0) setTestCases(data.test_cases);
             } catch (error) {
                 console.error("Failed to load challenge data:", error);
-                alert("Failed to load the challenge. It might not exist or you don't have permission.");
                 navigate('/profile');
             } finally {
                 setIsLoading(false);
             }
         };
 
-        if (challengeId) {
-            fetchExistingChallenge();
-        }
+        if (challengeId) fetchExistingChallenge();
     }, [challengeId, navigate]);
 
     const handleAddTestCase = () => {
         setTestCases([...testCases, { input_data: '', expected_output: '', hidden_flag: true }]);
     };
 
-    const handleRemoveTestCase = (indexToRemove: number) => {
-        setTestCases(testCases.filter((_, index) => index !== indexToRemove));
+    const handleRemoveTestCase = (index: number) => {
+        setTestCases(testCases.filter((_, i) => i !== index));
     };
 
     const handleTestCaseChange = (index: number, field: string, value: any) => {
@@ -72,139 +88,183 @@ export const Workshop: React.FC = () => {
         e.preventDefault();
         setIsPublishing(true);
 
-        const payload = {
-            title,
-            description,
-            difficulty,
-            starter_code: starterCode,
-            solution_code: solutionCode,
-            test_cases: testCases
-        };
+        const payload = { title, description, difficulty, starter_code: starterCode, solution_code: solutionCode, test_cases: testCases };
 
         try {
-            // 3. Dynamic Submission Logic
             if (challengeId) {
-                // Edit Mode -> PUT request
                 await apiClient.put(`/challenges/${challengeId}/`, payload);
-                alert("Challenge Updated Successfully!");
-                navigate('/profile'); // Send them back to their portfolio
+                navigate('/profile');
             } else {
-                // Create Mode -> POST request
                 await apiClient.post('/challenges/', payload);
-                alert("Challenge Published Successfully!");
-                navigate('/dashboard'); 
+                navigate('/dashboard');
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error("Failed to publish:", error);
-            if (error.response?.status === 403) alert("Permission Denied. You can only edit your own challenges.");
-            else alert("Error saving challenge. Check the console.");
         } finally {
             setIsPublishing(false);
         }
     };
 
-    if (isLoading) return <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>Loading Workshop...</div>;
+    if (isLoading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
-        <div style={{ maxWidth: '900px', margin: '40px auto', fontFamily: 'sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {/* Dynamic Title */}
-                <h2>{challengeId ? '✏️ Edit Challenge' : '🛠️ The Maker Workshop'}</h2>
-                <button onClick={() => navigate(challengeId ? '/profile' : '/dashboard')} style={{ padding: '8px 15px', cursor: 'pointer' }}>Cancel</button>
-            </div>
-            
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
-                
-                {/* Basic Info */}
-                <div style={{ display: 'flex', gap: '15px' }}>
-                    <input 
-                        required 
-                        type="text" 
-                        placeholder="Challenge Title" 
-                        value={title} 
-                        onChange={(e) => setTitle(e.target.value)}
-                        style={{ flex: 2, padding: '10px', fontSize: '16px' }}
-                    />
-                    <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} style={{ flex: 1, padding: '10px' }}>
-                        <option value="EZ">Easy (EZ)</option>
-                        <option value="MD">Medium (MD)</option>
-                        <option value="HD">Hard (HD)</option>
-                    </select>
-                </div>
+        <Box sx={{ minHeight: '100vh', background: '#f8fafc', py: 6 }}>
+            <Container maxWidth="md">
+                {/* Header Navigation */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                    <Button 
+                        startIcon={<ArrowBackIcon />} 
+                        onClick={() => navigate(challengeId ? '/profile' : '/dashboard')}
+                        sx={{ textTransform: 'none', color: 'text.secondary' }}
+                    >
+                        Cancel
+                    </Button>
+                    <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
+                        {challengeId ? 'Edit Challenge' : 'Maker Workshop'}
+                    </Typography>
+                </Box>
 
-                <textarea 
-                    required 
-                    placeholder="Describe the puzzle and instructions..." 
-                    value={description} 
-                    onChange={(e) => setDescription(e.target.value)}
-                    style={{ padding: '10px', height: '100px', fontSize: '14px', resize: 'vertical' }}
-                />
-
-                {/* Code Editors */}
-                <div style={{ display: 'flex', gap: '20px', height: '250px' }}>
-                    <div style={{ flex: 1, border: '1px solid #ccc' }}>
-                        <div style={{ backgroundColor: '#eee', padding: '5px', textAlign: 'center', fontSize: '12px', fontWeight: 'bold' }}>Starter Code</div>
-                        <Editor language="python" theme="vs-dark" value={starterCode} onChange={(val) => setStarterCode(val || '')} options={{ minimap: { enabled: false } }} />
-                    </div>
-                    <div style={{ flex: 1, border: '1px solid #ccc' }}>
-                        <div style={{ backgroundColor: '#eee', padding: '5px', textAlign: 'center', fontSize: '12px', fontWeight: 'bold' }}>Official Solution (Hidden)</div>
-                        <Editor language="python" theme="vs-dark" value={solutionCode} onChange={(val) => setSolutionCode(val || '')} options={{ minimap: { enabled: false } }} />
-                    </div>
-                </div>
-
-                {/* Test Cases Section */}
-                <div style={{ border: '2px dashed #ccc', padding: '20px', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                        <h3 style={{ margin: 0 }}>Test Cases</h3>
-                        <button type="button" onClick={handleAddTestCase} style={{ padding: '5px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>+ Add Test Case</button>
-                    </div>
-
-                    {testCases.map((tc, index) => (
-                        <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 'bold', width: '25px' }}>#{index + 1}</span>
-                            <input 
-                                required
-                                type="text" 
-                                placeholder="Input Data" 
-                                value={tc.input_data} 
-                                onChange={(e) => handleTestCaseChange(index, 'input_data', e.target.value)}
-                                style={{ flex: 2, padding: '8px', fontFamily: 'monospace' }}
-                            />
-                            <input 
-                                required
-                                type="text" 
-                                placeholder="Expected Output" 
-                                value={tc.expected_output} 
-                                onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
-                                style={{ flex: 1.5, padding: '8px', fontFamily: 'monospace' }}
-                            />
-                            <label style={{ flex: 0.5, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <input 
-                                    type="checkbox" 
-                                    checked={tc.hidden_flag} 
-                                    onChange={(e) => handleTestCaseChange(index, 'hidden_flag', e.target.checked)}
+                <form onSubmit={handleSubmit}>
+                    <Stack spacing={4}>
+                        {/* Section 1: Basic Info */}
+                        <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid #e2e8f0' }} elevation={0}>
+                            <Stack spacing={3}>
+                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        label="Challenge Title"
+                                        placeholder="e.g. Reverse a String"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                    />
+                                    <TextField
+                                        select
+                                        label="Difficulty"
+                                        value={difficulty}
+                                        onChange={(e) => setDifficulty(e.target.value)}
+                                        sx={{ minWidth: 150 }}
+                                    >
+                                        {difficulties.map((option) => (
+                                            <MenuItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Stack>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    multiline
+                                    rows={3}
+                                    label="Description & Instructions"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
                                 />
-                                Hidden
-                            </label>
-                            <button 
-                                type="button" 
-                                onClick={() => handleRemoveTestCase(index)}
-                                style={{ padding: '5px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                            </Stack>
+                        </Paper>
 
-                <button 
-                    type="submit" 
-                    disabled={isPublishing}
-                    style={{ padding: '15px', fontSize: '18px', backgroundColor: isPublishing ? '#ccc' : (challengeId ? '#ffc107' : '#007bff'), color: challengeId ? 'black' : 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                    {isPublishing ? 'Saving...' : (challengeId ? '💾 Update Challenge' : '🚀 Publish Challenge')}
-                </button>
-            </form>
-        </div>
+                        {/* Section 2: Logic Design */}
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, px: 1 }}>
+                            Logic Design
+                        </Typography>
+                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                            <Card sx={{ flex: 1, borderRadius: 3, border: '1px solid #e2e8f0', overflow: 'hidden' }} elevation={0}>
+                                <Box sx={{ px: 2, py: 1, background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b' }}>STARTER CODE</Typography>
+                                </Box>
+                                <Box sx={{ height: 300 }}>
+                                    <Editor height="100%" defaultLanguage="python" theme="vs-dark" value={starterCode} onChange={(v) => setStarterCode(v || '')} options={{ minimap: { enabled: false }, fontSize: 14 }} />
+                                </Box>
+                            </Card>
+
+                            <Card sx={{ flex: 1, borderRadius: 3, border: '1px solid #e2e8f0', overflow: 'hidden' }} elevation={0}>
+                                <Box sx={{ px: 2, py: 1, background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b' }}>OFFICIAL SOLUTION (HIDDEN)</Typography>
+                                </Box>
+                                <Box sx={{ height: 300 }}>
+                                    <Editor height="100%" defaultLanguage="python" theme="vs-dark" value={solutionCode} onChange={(v) => setSolutionCode(v || '')} options={{ minimap: { enabled: false }, fontSize: 14 }} />
+                                </Box>
+                            </Card>
+                        </Stack>
+
+                        {/* Section 3: Test Cases */}
+                        <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid #e2e8f0' }} elevation={0}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>Test Cases</Typography>
+                                <Button 
+                                    size="small" 
+                                    startIcon={<AddIcon />} 
+                                    onClick={handleAddTestCase} 
+                                    sx={{ textTransform: 'none' }}
+                                >
+                                    Add Case
+                                </Button>
+                            </Box>
+                            <Stack spacing={2}>
+                                {testCases.map((tc, index) => (
+                                    <Box key={index} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', p: 2, background: '#f8fafc', borderRadius: 2 }}>
+                                        <Typography sx={{ fontWeight: 700, mt: 1, color: 'text.secondary' }}>#{index + 1}</Typography>
+                                        <Stack spacing={2} sx={{ flexGrow: 1 }}>
+                                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                                <TextField
+                                                    required
+                                                    fullWidth
+                                                    size="small"
+                                                    label="Input Data"
+                                                    value={tc.input_data}
+                                                    onChange={(e) => handleTestCaseChange(index, 'input_data', e.target.value)}
+                                                    InputProps={{ sx: { fontFamily: 'monospace', fontSize: 13 } }}
+                                                />
+                                                <TextField
+                                                    required
+                                                    fullWidth
+                                                    size="small"
+                                                    label="Expected Output"
+                                                    value={tc.expected_output}
+                                                    onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
+                                                    InputProps={{ sx: { fontFamily: 'monospace', fontSize: 13 } }}
+                                                />
+                                            </Stack>
+                                            <FormControlLabel
+                                                control={<Checkbox size="small" checked={tc.hidden_flag} onChange={(e) => handleTestCaseChange(index, 'hidden_flag', e.target.checked)} />}
+                                                label={<Typography variant="caption">Hidden Case (Doesn't show stdout to Takers)</Typography>}
+                                            />
+                                        </Stack>
+                                        <IconButton color="error" onClick={() => handleRemoveTestCase(index)} sx={{ mt: 0.5 }}>
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+                                ))}
+                            </Stack>
+                        </Paper>
+
+                        <Button
+                            type="submit"
+                            disabled={isPublishing}
+                            variant="contained"
+                            size="large"
+                            startIcon={challengeId ? <SaveIcon /> : <RocketLaunchIcon />}
+                            sx={{
+                                py: 2,
+                                borderRadius: 3,
+                                fontWeight: 700,
+                                textTransform: 'none',
+                                fontSize: '1.1rem',
+                                boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)'
+                            }}
+                        >
+                            {isPublishing ? 'Processing...' : (challengeId ? 'Update Challenge' : 'Publish to Dashboard')}
+                        </Button>
+                    </Stack>
+                </form>
+            </Container>
+        </Box>
     );
 };

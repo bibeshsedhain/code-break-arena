@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
@@ -96,8 +97,7 @@ export const Arena: React.FC = () => {
 
     if (!challenge) {
         return (
-            // FIX: Moved p={4} into sx wrapper
-            <Box sx={{ p: 4 }}>
+            <Box p={4}>
                 <Typography>Loading Arena...</Typography>
             </Box>
         );
@@ -130,8 +130,7 @@ export const Arena: React.FC = () => {
                 </Button>
 
                 <Stack spacing={2}>
-                    {/* FIX: Moved fontWeight into sx wrapper */}
-                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    <Typography variant="h5" fontWeight={700}>
                         {challenge.title}
                     </Typography>
 
@@ -181,8 +180,7 @@ export const Arena: React.FC = () => {
                                 Reveal Solution
                             </Button>
                             {revealError && (
-                                
-                                <Typography color="error" sx={{ mt: 1 }}>
+                                <Typography mt={1} color="error">
                                     {revealError}
                                 </Typography>
                             )}
@@ -191,8 +189,7 @@ export const Arena: React.FC = () => {
 
                     {revealedSolution && (
                         <Paper sx={{ p: 2 }}>
-                            {/* FIX: Moved fontWeight and mb into sx wrapper */}
-                            <Typography sx={{ fontWeight: 600, mb: 1 }}>
+                            <Typography fontWeight={600} mb={1}>
                                 Official Solution
                             </Typography>
                             <Box
@@ -231,20 +228,18 @@ export const Arena: React.FC = () => {
                                         : '1px solid #ef4444'
                             }}
                         >
-                            {/* FIX: Moved fontWeight into sx wrapper */}
                             <Typography
+                                fontWeight={700}
                                 color={
                                     feedback.status === 'PASS'
                                         ? 'success.main'
                                         : 'error.main'
                                 }
-                                sx={{ fontWeight: 700 }}
                             >
                                 {feedback.status}
                             </Typography>
 
-                            {/* FIX: Moved mb into sx wrapper */}
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" mb={1}>
                                 Time: {feedback.execution_time}s
                             </Typography>
 
