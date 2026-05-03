@@ -3,6 +3,45 @@ import time
 from .models import TestCase, Attempt, UserMetrics
 from django.conf import settings
 
+import ast
+
+def is_output_match(stdout, expected):
+    """
+    Smartly compares stdout from JDoodle with the expected database output.
+    Handles spacing in lists/dicts and surrounding quotes in strings.
+    """
+    stdout = str(stdout).strip()
+    expected = str(expected).strip()
+
+    # 1. The Easy Win: Exact String Match
+    if stdout == expected:
+        return True
+
+    # 2. The List/Dict Match: Safely parse to Python objects
+    # This solves: "[1, 2, 3, 5, 8]" vs "[1,2,3,5,8]"
+    try:
+        parsed_stdout = ast.literal_eval(stdout)
+        parsed_expected = ast.literal_eval(expected)
+        
+        if parsed_stdout == parsed_expected:
+            return True
+    except (ValueError, SyntaxError):
+        pass # Ignore errors if the output is just raw text, not a list/dict
+
+    # 3. The Quote Match: Strip surrounding quotes
+    # This solves: 'fl' vs '"fl"'
+    stdout_clean = stdout.strip("\"'")
+    expected_clean = expected.strip("\"'")
+    
+    if stdout_clean == expected_clean:
+        return True
+
+    # 4. The Aggressive Fallback: Remove all spaces 
+    # Use cautiously, but great for edge-case arrays that failed parsing
+    if stdout.replace(" ", "") == expected.replace(" ", ""):
+        return True
+
+    return False
 # JDoodle Execution Endpoint
 JDOODLE_API_URL = "https://api.jdoodle.com/v1/execute"
 
