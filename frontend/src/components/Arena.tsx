@@ -91,6 +91,7 @@ const handleRunCode = async () => {
             const res = await apiClient.get(
                 `/challenges/${challengeId}/reveal/`
             );
+            console.log("Revealed solution:", res.data.solution_code);
             setRevealedSolution(res.data.solution_code);
             setRevealError(null);
         } catch (error: any) {
