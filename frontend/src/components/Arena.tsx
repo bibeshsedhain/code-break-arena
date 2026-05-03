@@ -38,6 +38,9 @@ export const Arena: React.FC = () => {
     const [failCount, setFailCount] = useState(0);
     const [revealedSolution, setRevealedSolution] = useState<string | null>(null);
     const [revealError, setRevealError] = useState<string | null>(null);
+    
+    // NEW: Add a key to force the Leaderboard to refresh
+    const [leaderboardKey, setLeaderboardKey] = useState<number>(0);
 
     useEffect(() => {
         const fetchChallenge = async () => {
@@ -68,6 +71,8 @@ export const Arena: React.FC = () => {
                 setFailCount((prev) => prev + 1);
             } else {
                 setFailCount(0);
+                // NEW: Trigger leaderboard refresh when passing
+                setLeaderboardKey((prev) => prev + 1);
             }
         } catch {
             alert('Execution server failed.');
@@ -267,7 +272,8 @@ export const Arena: React.FC = () => {
 
                     <Divider sx={{ my: 2 }} />
 
-                    <Leaderboard challengeId={challengeId as string} />
+                    {/* NEW: Pass the key to force re-renders */}
+                    <Leaderboard key={leaderboardKey} challengeId={challengeId as string} />
                 </Stack>
             </Box>
 

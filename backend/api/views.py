@@ -24,18 +24,49 @@ class ChallengeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def submit(self, request, pk=None):
-        """Executes user code against hidden test cases via JDoodle."""
         challenge = self.get_object()
         user_code = request.data.get('code', '')
         
         if not user_code:
             return Response({"error": "No code provided."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Route the code to your services.py file
         feedback = evaluate_code_submission(request.user, challenge, user_code)
         
-        return Response(feedback, status=status.HTTP_200_OK)
+        # Write to database if the user is authenticated
+        if request.user.is_authenticated:
+            from .models import UserMetrics, Attempt
+            
+            # 1. Always log the attempt
+            Attempt.objects.create(
+                user=request.user,
+                challenge=challenge,
+                code_submission=user_code,
+                result=feedback.get('status', 'ERROR')
+            )
+            
+            # 2. Update metrics if they passed
+            if feedback.get('status') == 'PASS':
+                execution_time = feedback.get('execution_time', 0)
+                
+                metrics, created = UserMetrics.objects.get_or_create(
+                    user=request.user,
+                    challenge=challenge,
+                    defaults={
+                        'best_time': execution_time,
+                        'total_attempts': 1,
+                        'completed': True  # CRITICAL for your leaderboard filter!
+                    }
+                )
+                
+                if not created:
+                    metrics.total_attempts += 1
+                    metrics.completed = True
+                    # Update best_time if it's a new record
+                    if metrics.best_time is None or execution_time < metrics.best_time:
+                        metrics.best_time = execution_time
+                    metrics.save()
 
+        return Response(feedback, status=status.HTTP_200_OK)
     # ==========================================
 
     @action(detail=True, methods=['get'])

@@ -1,4 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { 
+    Box, 
+    Typography, 
+    Stack, 
+    CircularProgress, 
+    Paper,
+    Divider 
+} from '@mui/material';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import apiClient from '../api';
 
 interface LeaderboardEntry {
@@ -12,19 +21,16 @@ interface LeaderboardProps {
 }
 
 export const Leaderboard: React.FC<LeaderboardProps> = ({ challengeId }) => {
-    const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
+    const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    
-    // Toggle state: default to false (collapsed) to save space
-    const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
                 const response = await apiClient.get(`/challenges/${challengeId}/leaderboard/`);
-                setLeaders(response.data);
+                setEntries(response.data);
             } catch (error) {
-                console.error("Failed to fetch leaderboard data:", error);
+                console.error("Failed to fetch leaderboard", error);
             } finally {
                 setLoading(false);
             }
@@ -35,77 +41,85 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ challengeId }) => {
         }
     }, [challengeId]);
 
-    // Helper to clean up the display name
-    const formatDisplayName = (username: string) => {
-        if (!username) return "Unknown Coder";
-        
-        // If the backend sent an email, just show the part before the @
-        if (username.includes('@')) {
-            return username.split('@')[0];
-        }
-        
-        // If the backend sent the raw Firebase UID (long random string), truncate it nicely
-        if (username.length > 10) {
-            return `Coder_${username.substring(0, 5)}`;
-        }
-        
-        return username;
+    const getTrophyColor = (index: number) => {
+        if (index === 0) return '#fbbf24'; // Gold
+        if (index === 1) return '#94a3b8'; // Silver
+        if (index === 2) return '#b45309'; // Bronze
+        return 'transparent';
     };
 
-    if (loading) return <p style={{ fontSize: '14px', color: 'gray' }}>Loading Top Coders...</p>;
-
-    if (leaders.length === 0) return null; // Hide completely if no one has passed yet
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={24} sx={{ color: '#3b82f6' }} />
+            </Box>
+        );
+    }
 
     return (
-        <div style={{ marginTop: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6', overflow: 'hidden', fontFamily: 'sans-serif' }}>
-            
-            {/* Clickable Header for Toggle */}
-            <div 
-                onClick={() => setIsExpanded(!isExpanded)}
-                style={{ padding: '15px', backgroundColor: '#e9ecef', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background-color 0.2s' }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dde2e6'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-            >
-                <h4 style={{ margin: 0, color: '#333', fontSize: '15px' }}>🏆 Optimization Leaderboard</h4>
-                <span style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', color: '#6c757d', fontSize: '12px' }}>
-                    ▼
-                </span>
-            </div>
+        <Box sx={{ mt: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
+                <EmojiEventsIcon sx={{ color: '#fbbf24' }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#f8fafc' }}>
+                    Top Hackers
+                </Typography>
+            </Box>
 
-            {/* Collapsible Table Content */}
-            {isExpanded && (
-                <div style={{ padding: '0 15px 15px 15px' }}>
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '14px', marginTop: '10px' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #dee2e6' }}>
-                                <th style={{ padding: '8px 4px', color: '#495057' }}>Rank</th>
-                                <th style={{ padding: '8px 4px', color: '#495057' }}>Coder</th>
-                                <th style={{ padding: '8px 4px', color: '#495057' }}>Time (s)</th>
-                                <th style={{ padding: '8px 4px', color: '#495057', textAlign: 'center' }}>Attempts</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {leaders.map((leader, index) => (
-                                <tr key={index} style={{ borderBottom: '1px solid #f1f3f5' }}>
-                                    <td style={{ padding: '10px 4px', fontWeight: 'bold', color: '#6c757d' }}>
-                                        #{index + 1}
-                                    </td>
-                                    <td style={{ padding: '10px 4px', fontWeight: '500', color: '#343a40' }}>
-                                        {formatDisplayName(leader.username)}
-                                    </td>
-                                    <td style={{ padding: '10px 4px', color: '#28a745', fontWeight: 'bold' }}>
-                                        {/* Format to exactly 3 decimal places */}
-                                        {leader.best_time.toFixed(3)}
-                                    </td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#6c757d' }}>
-                                        {leader.attempts}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+            {entries.length === 0 ? (
+                <Paper 
+                    elevation={0} 
+                    sx={{ p: 3, textAlign: 'center', bgcolor: 'rgba(15, 23, 42, 0.4)', border: '1px dashed #1e293b', borderRadius: 2 }}
+                >
+                    <Typography variant="body2" sx={{ color: '#64748b' }}>
+                        No one has solved this yet. Be the first!
+                    </Typography>
+                </Paper>
+            ) : (
+                <Stack spacing={1}>
+                    {entries.map((entry, index) => (
+                        <Paper
+                            key={index}
+                            elevation={0}
+                            sx={{
+                                p: 1.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                bgcolor: index === 0 ? 'rgba(251, 191, 36, 0.05)' : '#020617',
+                                border: '1px solid',
+                                borderColor: index === 0 ? 'rgba(251, 191, 36, 0.2)' : '#1e293b',
+                                borderRadius: 2,
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                        fontWeight: 800, 
+                                        color: getTrophyColor(index),
+                                        minWidth: '20px',
+                                        textAlign: 'center'
+                                    }}
+                                >
+                                    {index < 3 ? <EmojiEventsIcon fontSize="small" /> : `#${index + 1}`}
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: index === 0 ? 700 : 500, color: '#e2e8f0' }}>
+                                    {entry.username.split('@')[0]} {/* Clean up emails to just show prefix */}
+                                </Typography>
+                            </Box>
+
+                            <Box sx={{ textAlign: 'right' }}>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: '#34d399' }}>
+                                    {entry.best_time}s
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#64748b' }}>
+                                    {entry.attempts} {entry.attempts === 1 ? 'attempt' : 'attempts'}
+                                </Typography>
+                            </Box>
+                        </Paper>
+                    ))}
+                </Stack>
             )}
-        </div>
+        </Box>
     );
 };
