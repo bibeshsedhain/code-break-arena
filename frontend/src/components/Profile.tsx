@@ -121,12 +121,7 @@ export const Profile: React.FC = () => {
                                         >
                                             Edit
                                         </button>
-                                        <button
-                                            onClick={() => alert("Edit routing goes here!")}
-                                            style={{ padding: '5px 10px', backgroundColor: '#ffc107', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
-                                        >
-                                            Edit
-                                        </button>
+
                                         <button
                                             onClick={() => handleDeleteChallenge(challenge.challenge_id)}
                                             style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
