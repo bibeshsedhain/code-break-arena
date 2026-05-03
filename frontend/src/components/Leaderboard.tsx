@@ -4,8 +4,7 @@ import {
     Typography, 
     Stack, 
     CircularProgress, 
-    Paper,
-    Divider 
+    Paper
 } from '@mui/material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import apiClient from '../api';
