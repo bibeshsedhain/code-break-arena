@@ -59,8 +59,8 @@ def evaluate_code_submission(user, challenge, user_code):
     status_result = "PASS"
 
     # Credentials (Ideally stored in .env)
-    client_id = getattr(settings, 'JDOODLE_CLIENT_ID', '61507bb776dd32c34fa19d7a361bf598')
-    client_secret = getattr(settings, 'JDOODLE_CLIENT_SECRET', '1bb7c40e6961303dee0fa5971a655d6827be3d41a1d95f7bf4566b34f2a7e24c')
+    client_id = getattr(settings, 'JDOODLE_CLIENT_ID', 'dc10c5f6b449bcdd7d1a7efcda567c84')
+    client_secret = getattr(settings, 'JDOODLE_CLIENT_SECRET', '55e0c0dab9772a7e5776dc614b9058f97bc48e81ef2e2a1b45fc50e3f85413fe')
 
 
     for test in test_cases:
