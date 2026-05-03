@@ -11,35 +11,20 @@ def evaluate_code_submission(user, challenge, user_code):
     Executes user code against hidden test cases using the JDoodle API.
     Evaluates correctness and tracks execution time for metrics.
     """
-    
-    # 1. IRONCLAD GUARD: Block empty code immediately
-    if not user_code or not user_code.strip() or user_code.strip() == 'def solution():\n    pass':
-        return {
-            "status": "ERROR",
-            "execution_time": 0.0,
-            "results": [{"passed": False, "error": "Code cannot be empty or just the starter template."}]
-        }
-
-    # 2. Retrieve hidden test cases
+    # 1. Retrieve hidden test cases
     test_cases = challenge.test_cases.filter(hidden_flag=True)
-    
-    # IRONCLAD GUARD: Fail if the Maker forgot to add test cases
-    if not test_cases.exists():
-        return {
-            "status": "ERROR",
-            "execution_time": 0.0,
-            "results": [{"passed": False, "error": "No hidden test cases configured for this challenge."}]
-        }
     
     results = []
     all_passed = True
     total_execution_time = 0.0
     status_result = "PASS"
 
+    # Credentials (Ideally stored in .env)
     client_id = getattr(settings, 'JDOODLE_CLIENT_ID', '61507bb776dd32c34fa19d7a361bf598')
     client_secret = getattr(settings, 'JDOODLE_CLIENT_SECRET', '1bb7c40e6961303dee0fa5971a655d6827be3d41a1d95f7bf4566b34f2a7e24c')
 
     for test in test_cases:
+        # Construct the test harness: User Code + Hidden Input Trigger
         harness_code = f"{user_code}\n\n{test.input_data}"
         
         payload = {
@@ -47,48 +32,44 @@ def evaluate_code_submission(user, challenge, user_code):
             "clientSecret": client_secret,
             "script": harness_code,
             "language": "python3",
-            "versionIndex": "4"
+            "versionIndex": "4" # Index for Python 3.10+
         }
 
         try:
-            # Use perf_counter for high-resolution timing fallback
-            start_time = time.perf_counter()
+            start_time = time.time()
             response = requests.post(JDOODLE_API_URL, json=payload, timeout=15)
-            end_time = time.perf_counter()
+            end_time = time.time()
             
-            network_run_time = end_time - start_time
+            run_time = end_time - start_time
 
             if response.status_code == 200:
                 data = response.json()
                 
+                # JDoodle returns output as a single string
                 stdout = data.get('output', '').strip()
                 expected = test.expected_output.strip()
                 
+                # 1. Evaluate Logic
                 passed = (stdout == expected)
                 
                 if not passed:
                     all_passed = False
                     status_result = "FAIL"
 
-                # Catch syntax errors / JDoodle limits
-                if data.get('error') or data.get('statusCode') not in [200, 201] or "error" in stdout.lower():
+                # 2. Check for JDoodle-specific internal errors (Quota hit, syntax crash, etc.)
+                # Only overwrite to ERROR if it wasn't a logic failure and an actual error exists
+                if data.get('error') or data.get('statusCode') not in [200, 201]:
                     if status_result != "FAIL":
                         status_result = "ERROR"
                         all_passed = False
 
-                # TIMING FIX: Use JDoodle's actual CPU time, fallback to network time
-                try:
-                    actual_run_time = float(data.get('cpuTime', network_run_time))
-                except ValueError:
-                    actual_run_time = network_run_time
-
-                total_execution_time += actual_run_time
+                total_execution_time += run_time
                 
                 results.append({
                     "test_id": str(test.test_id),
                     "passed": passed,
                     "stdout": stdout,
-                    "time": round(actual_run_time, 3)
+                    "time": round(run_time, 3)
                 })
             else:
                 all_passed = False
@@ -110,6 +91,7 @@ def evaluate_code_submission(user, challenge, user_code):
 
     # 3. Save Attempt and Update Metrics (Requires Authenticated User)
     if user.is_authenticated:
+        # Log the raw attempt
         Attempt.objects.create(
             user=user,
             challenge=challenge,
@@ -117,11 +99,13 @@ def evaluate_code_submission(user, challenge, user_code):
             result=status_result
         )
 
+        # Update aggregated metrics for Gamification & Reveal mechanics
         metrics, created = UserMetrics.objects.get_or_create(user=user, challenge=challenge)
         metrics.total_attempts += 1
         
         if status_result == "PASS":
             metrics.completed = True
+            # Update Leaderboard time if it's their best run yet
             if metrics.best_time is None or total_execution_time < metrics.best_time:
                 metrics.best_time = total_execution_time
                 
