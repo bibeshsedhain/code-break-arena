@@ -55,7 +55,14 @@ export const Arena: React.FC = () => {
         if (challengeId) fetchChallenge();
     }, [challengeId]);
 
-    const handleRunCode = async () => {
+const handleRunCode = async () => {
+        // NEW: FRONTEND GUARD to stop empty code from passing
+        const trimmedCode = code.trim();
+        if (!trimmedCode || trimmedCode === 'def solution():' || trimmedCode === 'def solution():\n    pass') {
+            alert("Please write your solution code before running!");
+            return;
+        }
+
         setIsSubmitting(true);
         setFeedback(null);
 
@@ -71,8 +78,7 @@ export const Arena: React.FC = () => {
                 setFailCount((prev) => prev + 1);
             } else {
                 setFailCount(0);
-                // NEW: Trigger leaderboard refresh when passing
-                setLeaderboardKey((prev) => prev + 1);
+                setLeaderboardKey((prev) => prev + 1); // Triggers the leaderboard refresh
             }
         } catch {
             alert('Execution server failed.');
@@ -80,7 +86,6 @@ export const Arena: React.FC = () => {
             setIsSubmitting(false);
         }
     };
-
     const handleRevealSolution = async () => {
         try {
             const res = await apiClient.get(

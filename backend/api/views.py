@@ -107,14 +107,21 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             best_time__isnull=False
         ).select_related('user').order_by('best_time')[:10]
 
-        leaderboard_data = [
-            {
-                # Failsafe: Use username if it exists, otherwise use email (Firebase default)
-                "username": metric.user.username if metric.user.username else metric.user.email,
-                "best_time": metric.best_time,
+        leaderboard_data = []
+        for metric in top_metrics:
+            # FIX: Create a clean display name, defaulting to Anonymous Hacker
+            display_name = "Anonymous Hacker"
+            if metric.user.email:
+                display_name = metric.user.email.split('@')[0] # turns "bibesh@gmail.com" into "bibesh"
+            elif metric.user.username:
+                display_name = metric.user.username
+
+            leaderboard_data.append({
+                "username": display_name,
+                "best_time": round(metric.best_time, 3), # Force 3 decimal places
                 "attempts": metric.total_attempts
-            } for metric in top_metrics
-        ]
+            })
+            
         return Response(leaderboard_data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'])
