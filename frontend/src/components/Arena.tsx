@@ -38,7 +38,7 @@ export const Arena: React.FC = () => {
     const [failCount, setFailCount] = useState(0);
     const [revealedSolution, setRevealedSolution] = useState<string | null>(null);
     const [revealError, setRevealError] = useState<string | null>(null);
-    
+    const [startTime, setStartTime] = useState<number | null>(null);
     // NEW: Add a key to force the Leaderboard to refresh
     const [leaderboardKey, setLeaderboardKey] = useState<number>(0);
 
@@ -55,6 +55,12 @@ export const Arena: React.FC = () => {
         if (challengeId) fetchChallenge();
     }, [challengeId]);
 
+    useEffect(() => {
+            if (!startTime) {
+                setStartTime(Date.now());
+            }
+        }, [startTime]);
+
 const handleRunCode = async () => {
         // NEW: FRONTEND GUARD to stop empty code from passing
         const trimmedCode = code.trim();
@@ -66,11 +72,15 @@ const handleRunCode = async () => {
         setIsSubmitting(true);
         setFeedback(null);
 
+        let timeTakenInSeconds = 0;
+        if (startTime) {
+            timeTakenInSeconds = (Date.now() - startTime) / 1000;
+        }
         try {
-            const res = await apiClient.post(
-                `/challenges/${challengeId}/submit/`,
-                { code }
-            );
+        const res = await apiClient.post(`/challenges/${challengeId}/submit/`, {
+                code: code,
+                client_time_taken: timeTakenInSeconds
+            });
 
             setFeedback(res.data);
 

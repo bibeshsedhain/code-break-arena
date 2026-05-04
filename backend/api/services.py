@@ -1,9 +1,10 @@
-import requests
-import time
-from .models import TestCase, Attempt, UserMetrics
-from django.conf import settings
-
 import ast
+import time
+import requests
+from django.conf import settings
+from .models import Attempt, UserMetrics
+
+JDOODLE_API_URL = "https://api.jdoodle.com/v1/execute"
 
 def is_output_match(stdout, expected):
     """
@@ -13,46 +14,39 @@ def is_output_match(stdout, expected):
     stdout = str(stdout).strip()
     expected = str(expected).strip()
 
-    # 1. The Easy Win: Exact String Match
+    # 1. Exact Match
     if stdout == expected:
         return True
 
-    # 2. The List/Dict Match: Safely parse to Python objects
-    # This solves: "[1, 2, 3, 5, 8]" vs "[1,2,3,5,8]"
+    # 2. Safely parse lists/dicts
     try:
         parsed_stdout = ast.literal_eval(stdout)
         parsed_expected = ast.literal_eval(expected)
-        
         if parsed_stdout == parsed_expected:
             return True
     except (ValueError, SyntaxError):
-        pass # Ignore errors if the output is just raw text, not a list/dict
+        pass 
 
-    # 3. The Quote Match: Strip surrounding quotes
-    # This solves: 'fl' vs '"fl"'
+    # 3. Strip quotes
     stdout_clean = stdout.strip("\"'")
     expected_clean = expected.strip("\"'")
-    
     if stdout_clean == expected_clean:
         return True
 
-    # 4. The Aggressive Fallback: Remove all spaces 
-    # Use cautiously, but great for edge-case arrays that failed parsing
+    # 4. Aggressive space removal fallback
     if stdout.replace(" ", "") == expected.replace(" ", ""):
         return True
 
     return False
-# JDoodle Execution Endpoint
-JDOODLE_API_URL = "https://api.jdoodle.com/v1/execute"
 
-def evaluate_code_submission(user, challenge, user_code):
+
+def evaluate_code_submission(user, challenge, user_code, client_time_taken=0):
     """
     Executes user code against hidden test cases using the JDoodle API.
-    Evaluates correctness and tracks execution time for metrics.
+    Evaluates correctness and tracks human solve time for leaderboards.
     """
     # 1. Retrieve hidden test cases
     test_cases = challenge.test_cases.filter(hidden_flag=True)
-    print(test_cases)
     results = []
     all_passed = True
     total_execution_time = 0.0
@@ -61,7 +55,6 @@ def evaluate_code_submission(user, challenge, user_code):
     # Credentials (Ideally stored in .env)
     client_id = getattr(settings, 'JDOODLE_CLIENT_ID', 'dc10c5f6b449bcdd7d1a7efcda567c84')
     client_secret = getattr(settings, 'JDOODLE_CLIENT_SECRET', '55e0c0dab9772a7e5776dc614b9058f97bc48e81ef2e2a1b45fc50e3f85413fe')
-
 
     for test in test_cases:
         # Construct the test harness: User Code + Hidden Input Trigger
@@ -89,15 +82,14 @@ def evaluate_code_submission(user, challenge, user_code):
                 stdout = data.get('output', '').strip()
                 expected = test.expected_output.strip()
 
-                # New smart check
+                # Smart check
                 passed = is_output_match(stdout, expected)
-                print("testing result:", stdout, expected)
+                
                 if not passed:
                     all_passed = False
                     status_result = "FAIL"
 
-                # 2. Check for JDoodle-specific internal errors (Quota hit, syntax crash, etc.)
-                # Only overwrite to ERROR if it wasn't a logic failure and an actual error exists
+                # 2. Check for JDoodle internal errors (Quota hit, syntax crash)
                 if data.get('error') or data.get('statusCode') not in [200, 201]:
                     if status_result != "FAIL":
                         status_result = "ERROR"
@@ -139,19 +131,30 @@ def evaluate_code_submission(user, challenge, user_code):
             result=status_result
         )
 
-        # Update aggregated metrics for Gamification & Reveal mechanics
+        # Update aggregated metrics 
         metrics, created = UserMetrics.objects.get_or_create(user=user, challenge=challenge)
         metrics.total_attempts += 1
         
         if status_result == "PASS":
             metrics.completed = True
-            # Update Leaderboard time if it's their best run yet
-            if metrics.best_time is None or total_execution_time < metrics.best_time:
-                metrics.best_time = total_execution_time
+            
+            # --- NEW: Save React Stopwatch Time to the existing `best_time` column ---
+            try:
+                time_taken = float(client_time_taken)
+                if time_taken > 0:
+                    # Update if it's their first win, OR if they beat their old time
+                    if metrics.best_time is None or time_taken < metrics.best_time:
+                        metrics.best_time = time_taken
+            except (ValueError, TypeError):
+                # Fail silently if the frontend sent weird/corrupted data 
+                pass
                 
         metrics.save()
+
     return {
         "status": status_result,
-        "execution_time": round(total_execution_time, 3),
+        # We still return JDoodle's execution time so your Arena UI can display it
+        # on the individual test cases, but it no longer controls the leaderboard!
+        "execution_time": round(total_execution_time, 3), 
         "results": results
     }

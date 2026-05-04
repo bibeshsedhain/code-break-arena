@@ -33,7 +33,7 @@ class ChallengeViewSet(viewsets.ModelViewSet):
         """
         challenge = self.get_object()
         user_code = request.data.get('code')
-    
+        client_time_taken = request.data.get('client_time_taken', 0)
         if not user_code:
             return Response({"error": "No code provided"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -42,7 +42,8 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             execution_data = evaluate_code_submission(
                 user=request.user, 
                 challenge=challenge, 
-                user_code=user_code
+                user_code=user_code,
+                client_time_taken=client_time_taken
             )
             return Response(execution_data, status=status.HTTP_200_OK)
             
