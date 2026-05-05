@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
                     '@supports (min-height: 100dvh)': {
                         minHeight: '100dvh'
                     },
-                    background: '#020617', // Cleaner solid fallback
+                    background: '#020617',
                     backgroundImage: 'radial-gradient(circle at top center, #1e293b 0%, #020617 100%)',
                 }}
             >
@@ -120,7 +120,8 @@ export const Dashboard: React.FC = () => {
                             Challenge Hub
                         </Typography>
 
-                        <Stack direction="row" spacing={{ xs: 1, sm: 1.5 }} alignItems="center">
+                        {/* TypeScript FIX: Moved alignItems into sx */}
+                        <Stack direction="row" spacing={{ xs: 1, sm: 1.5 }} sx={{ alignItems: 'center' }}>
                             <Button
                                 variant="contained"
                                 startIcon={<AddIcon sx={{ fontSize: '1.1rem !important' }} />}
@@ -295,7 +296,6 @@ export const Dashboard: React.FC = () => {
                                 textAlign: 'center',
                                 py: { xs: 7, sm: 10 },
                                 px: { xs: 3, sm: 4 },
-                                // Smoother glass panel instead of a harsh dashed line
                                 background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.3) 0%, rgba(15, 23, 42, 0.4) 100%)',
                                 backdropFilter: 'blur(10px)',
                                 border: '1px solid rgba(255, 255, 255, 0.04)',
