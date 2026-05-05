@@ -125,7 +125,8 @@ export const Arena: React.FC = () => {
                 display: 'flex',
                 flexDirection: { xs: 'column', lg: 'row' },
                 minHeight: '100vh',
-                '@supports (min-height: 100dvh)': { minHeight: '100dvh' },
+                // CRITICAL FIX: Allow auto height on mobile for native page scrolling
+                height: { xs: 'auto', lg: '100vh' },
                 background: 'linear-gradient(180deg, #0f172a 0%, #020617 100%)'
             }}
         >
@@ -133,12 +134,12 @@ export const Arena: React.FC = () => {
             <Box
                 sx={{
                     width: { xs: '100%', lg: '40%' },
+                    // Allow to grow naturally on mobile, lock to screen height on desktop
                     height: { xs: 'auto', lg: '100vh' },
-                    p: { xs: 2.5, sm: 4 },
-                    overflowY: 'auto',
+                    p: { xs: 2, sm: 3, lg: 4 },
+                    overflowY: { xs: 'visible', lg: 'auto' }, 
                     borderRight: { xs: 'none', lg: '1px solid rgba(255,255,255,0.08)' },
-                    borderBottom: { xs: '1px solid rgba(255,255,255,0.08)', lg: 'none' },
-                    // Left Panel Custom Scrollbar
+                    // Custom scrollbar for desktop
                     '&::-webkit-scrollbar': { width: '6px' },
                     '&::-webkit-scrollbar-track': { background: 'transparent' },
                     '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.1)', borderRadius: '10px' },
@@ -148,7 +149,7 @@ export const Arena: React.FC = () => {
                 <Button
                     startIcon={<ArrowBackIcon />}
                     onClick={() => navigate('/dashboard')}
-                    sx={{ mb: 3, textTransform: 'none', color: '#94a3b8', '&:hover': { color: '#f8fafc', bgcolor: 'rgba(255,255,255,0.05)' } }}
+                    sx={{ mb: { xs: 2, lg: 3 }, textTransform: 'none', color: '#94a3b8', '&:hover': { color: '#f8fafc', bgcolor: 'rgba(255,255,255,0.05)' } }}
                 >
                     Back to Dashboard
                 </Button>
@@ -156,7 +157,7 @@ export const Arena: React.FC = () => {
                 <Stack spacing={3}>
                     {/* Header */}
                     <Box>
-                        <Typography variant="h4" sx={{ fontWeight: 800, color: '#f8fafc', mb: 1, letterSpacing: -0.5 }}>
+                        <Typography variant="h4" sx={{ fontWeight: 800, color: '#f8fafc', mb: 1, letterSpacing: -0.5, fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
                             {challenge.title}
                         </Typography>
                         <Chip
@@ -176,7 +177,7 @@ export const Arena: React.FC = () => {
                     <Paper
                         elevation={0}
                         sx={{
-                            p: 3,
+                            p: { xs: 2.5, md: 3 },
                             backgroundColor: 'rgba(2, 6, 23, 0.4)',
                             border: '1px solid rgba(255, 255, 255, 0.08)',
                             borderRadius: 3,
@@ -253,13 +254,13 @@ export const Arena: React.FC = () => {
                     {/* Constrained Official Solution Section */}
                     {revealedSolution && (
                         <Box sx={{ 
-                            p: 2.5, 
+                            p: { xs: 2, md: 2.5 }, 
                             borderRadius: 3, 
                             border: '1px solid rgba(59, 130, 246, 0.3)', 
                             bgcolor: 'rgba(15, 23, 42, 0.6)' 
                         }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                                <Typography sx={{ fontWeight: 700, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography sx={{ fontWeight: 700, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.95rem' }}>
                                     <LightbulbIcon fontSize="small" /> Official Solution
                                 </Typography>
                                 <Button
@@ -289,15 +290,16 @@ export const Arena: React.FC = () => {
                                     border: '1px solid rgba(255,255,255,0.05)',
                                     overflowX: 'auto',
                                     overflowY: 'auto',
-                                    maxHeight: '200px', // Prevents it from pushing leaderboard down
+                                    maxHeight: '200px',
+                                    whiteSpace: 'pre-wrap', // Forces long lines to wrap on mobile
+                                    wordBreak: 'break-word',
                                     fontSize: 13,
                                     fontFamily: 'monospace',
                                     m: 0,
-                                    // Custom scrollbar for the code block
-                                    '&::-webkit-scrollbar': { width: '8px', height: '8px' },
+                                    // Custom scrollbars for the code block
+                                    '&::-webkit-scrollbar': { width: '6px', height: '6px' },
                                     '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px' },
                                     '&::-webkit-scrollbar-thumb:hover': { backgroundColor: 'rgba(255,255,255,0.2)' },
-                                    '&::-webkit-scrollbar-corner': { backgroundColor: 'transparent' }
                                 }}
                             >
                                 {revealedSolution}
@@ -310,7 +312,7 @@ export const Arena: React.FC = () => {
                         <Paper
                             elevation={0}
                             sx={{
-                                p: 3,
+                                p: { xs: 2, md: 3 },
                                 borderRadius: 3,
                                 bgcolor: 'rgba(15, 23, 42, 0.8)',
                                 border: feedback.status === 'PASS' ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
@@ -344,11 +346,13 @@ export const Arena: React.FC = () => {
                                             variant="caption"
                                             sx={{
                                                 fontFamily: 'monospace',
-                                                bgcolor: 'rgba(2, 6, 23, 0.5)',
+                                                bgcolor: 'rgba(0, 0, 0, 0.3)', // Darker background for output
                                                 color: t.passed ? '#94a3b8' : '#fca5a5',
-                                                p: 1,
-                                                borderRadius: 1,
-                                                border: '1px solid rgba(255,255,255,0.05)'
+                                                p: 1.5,
+                                                borderRadius: 2,
+                                                border: '1px solid rgba(255,255,255,0.05)',
+                                                whiteSpace: 'pre-wrap',
+                                                wordBreak: 'break-all'
                                             }}
                                         >
                                             {t.stdout || 'No output'}
@@ -359,10 +363,12 @@ export const Arena: React.FC = () => {
                         </Paper>
                     )}
 
-                    <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+                    <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', display: { xs: 'none', lg: 'block' } }} />
 
                     {/* Leaderboard */}
-                    <Leaderboard key={leaderboardKey} challengeId={challengeId as string} />
+                    <Box sx={{ pb: { xs: 4, lg: 0 } }}>
+                        <Leaderboard key={leaderboardKey} challengeId={challengeId as string} />
+                    </Box>
                 </Stack>
             </Box>
 
@@ -370,8 +376,11 @@ export const Arena: React.FC = () => {
             <Box 
                 sx={{ 
                     width: { xs: '100%', lg: '60%' }, 
-                    height: { xs: '65vh', lg: '100vh' }, 
-                    p: { xs: 2, lg: 3 }, 
+                    // Fixed height block on mobile so it sits cleanly at the bottom
+                    height: { xs: '500px', md: '600px', lg: '100vh' }, 
+                    p: { xs: 2, md: 3, lg: 4 }, 
+                    pt: { xs: 0, lg: 4 }, // Remove top padding on mobile to pull it closer to the leaderboard
+                    pb: { xs: 4, lg: 4 }, // Extra padding at the very bottom of mobile
                     display: 'flex', 
                     alignItems: 'stretch', 
                     justifyContent: 'center' 
@@ -418,7 +427,7 @@ export const Arena: React.FC = () => {
                             options={{ 
                                 minimap: { enabled: false }, 
                                 fontSize: 14, 
-                                padding: { top: 16 }, 
+                                padding: { top: 16, bottom: 16 }, 
                                 scrollBeyondLastLine: false, 
                                 wordWrap: 'on',
                                 cursorBlinking: 'smooth',
