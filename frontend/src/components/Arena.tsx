@@ -125,8 +125,9 @@ export const Arena: React.FC = () => {
                 display: 'flex',
                 flexDirection: { xs: 'column', lg: 'row' },
                 minHeight: '100vh',
-                // CRITICAL FIX: Allow auto height on mobile for native page scrolling
                 height: { xs: 'auto', lg: '100vh' },
+                maxWidth: '100vw', // CRITICAL: Prevent horizontal overflow at root
+                overflowX: 'hidden', // CRITICAL: Hide any accidental wide children
                 background: 'linear-gradient(180deg, #0f172a 0%, #020617 100%)'
             }}
         >
@@ -134,11 +135,13 @@ export const Arena: React.FC = () => {
             <Box
                 sx={{
                     width: { xs: '100%', lg: '40%' },
-                    // Allow to grow naturally on mobile, lock to screen height on desktop
+                    maxWidth: '100%',
                     height: { xs: 'auto', lg: '100vh' },
-                    p: { xs: 2, sm: 3, lg: 4 },
+                    p: { xs: 1.5, sm: 3, lg: 4 }, // Tightened mobile padding
                     overflowY: { xs: 'visible', lg: 'auto' }, 
+                    overflowX: 'hidden',
                     borderRight: { xs: 'none', lg: '1px solid rgba(255,255,255,0.08)' },
+                    borderBottom: { xs: '1px solid rgba(255,255,255,0.08)', lg: 'none' },
                     // Custom scrollbar for desktop
                     '&::-webkit-scrollbar': { width: '6px' },
                     '&::-webkit-scrollbar-track': { background: 'transparent' },
@@ -154,10 +157,20 @@ export const Arena: React.FC = () => {
                     Back to Dashboard
                 </Button>
 
-                <Stack spacing={3}>
+                <Stack spacing={2.5}>
                     {/* Header */}
-                    <Box>
-                        <Typography variant="h4" sx={{ fontWeight: 800, color: '#f8fafc', mb: 1, letterSpacing: -0.5, fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
+                    <Box sx={{ width: '100%' }}>
+                        <Typography 
+                            variant="h4" 
+                            sx={{ 
+                                fontWeight: 800, 
+                                color: '#f8fafc', 
+                                mb: 1, 
+                                letterSpacing: -0.5, 
+                                fontSize: { xs: '1.5rem', md: '2.125rem' },
+                                wordBreak: 'break-word' // Ensures long titles wrap instead of expanding box
+                            }}
+                        >
                             {challenge.title}
                         </Typography>
                         <Chip
@@ -177,13 +190,14 @@ export const Arena: React.FC = () => {
                     <Paper
                         elevation={0}
                         sx={{
-                            p: { xs: 2.5, md: 3 },
+                            p: { xs: 2, md: 3 },
                             backgroundColor: 'rgba(2, 6, 23, 0.4)',
                             border: '1px solid rgba(255, 255, 255, 0.08)',
                             borderRadius: 3,
                             color: '#cbd5e1',
                             lineHeight: 1.7,
-                            fontSize: '0.95rem'
+                            fontSize: '0.95rem',
+                            wordBreak: 'break-word'
                         }}
                     >
                         {challenge.description}
@@ -197,7 +211,7 @@ export const Arena: React.FC = () => {
                         onClick={handleRunCode}
                         disabled={isSubmitting}
                         sx={{
-                            py: 1.8,
+                            py: { xs: 1.5, md: 1.8 },
                             borderRadius: 3,
                             fontWeight: 800,
                             fontSize: '1.05rem',
@@ -220,14 +234,14 @@ export const Arena: React.FC = () => {
                     {/* Reveal Hint Section */}
                     {failCount >= 3 && !revealedSolution && (
                         <Box sx={{ 
-                            p: 2.5, 
+                            p: 2, 
                             borderRadius: 3, 
                             border: '1px solid rgba(245, 158, 11, 0.3)', 
                             bgcolor: 'rgba(245, 158, 11, 0.05)' 
                         }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                                <LightbulbIcon sx={{ color: '#fbbf24' }} />
-                                <Typography sx={{ color: '#fcd34d', fontWeight: 600 }}>Stuck? Try revealing the solution.</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                                <LightbulbIcon sx={{ color: '#fbbf24', fontSize: '1.2rem' }} />
+                                <Typography sx={{ color: '#fcd34d', fontWeight: 600, fontSize: '0.95rem' }}>Stuck? Try revealing the solution.</Typography>
                             </Box>
                             <Button
                                 fullWidth
@@ -238,13 +252,14 @@ export const Arena: React.FC = () => {
                                     borderColor: 'rgba(245, 158, 11, 0.5)', 
                                     textTransform: 'none',
                                     fontWeight: 600,
+                                    py: 1,
                                     '&:hover': { bgcolor: 'rgba(245, 158, 11, 0.1)', borderColor: '#fbbf24' }
                                 }}
                             >
                                 Reveal Official Solution
                             </Button>
                             {revealError && (
-                                <Typography sx={{ color: '#ef4444', mt: 1.5, fontSize: '0.85rem', textAlign: 'center' }}>
+                                <Typography sx={{ color: '#ef4444', mt: 1, fontSize: '0.85rem', textAlign: 'center' }}>
                                     {revealError}
                                 </Typography>
                             )}
@@ -257,7 +272,9 @@ export const Arena: React.FC = () => {
                             p: { xs: 2, md: 2.5 }, 
                             borderRadius: 3, 
                             border: '1px solid rgba(59, 130, 246, 0.3)', 
-                            bgcolor: 'rgba(15, 23, 42, 0.6)' 
+                            bgcolor: 'rgba(15, 23, 42, 0.6)',
+                            width: '100%',
+                            boxSizing: 'border-box'
                         }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                                 <Typography sx={{ fontWeight: 700, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.95rem' }}>
@@ -285,13 +302,13 @@ export const Arena: React.FC = () => {
                                 sx={{
                                     background: '#020617',
                                     color: '#e2e8f0',
-                                    p: 2,
+                                    p: 1.5,
                                     borderRadius: 2,
                                     border: '1px solid rgba(255,255,255,0.05)',
                                     overflowX: 'auto',
                                     overflowY: 'auto',
                                     maxHeight: '200px',
-                                    whiteSpace: 'pre-wrap', // Forces long lines to wrap on mobile
+                                    whiteSpace: 'pre-wrap', 
                                     wordBreak: 'break-word',
                                     fontSize: 13,
                                     fontFamily: 'monospace',
@@ -338,7 +355,7 @@ export const Arena: React.FC = () => {
 
                             <Stack spacing={1.5}>
                                 {feedback.results.map((t, i) => (
-                                    <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, maxWidth: '100%', overflowX: 'hidden' }}>
                                         <Typography variant="body2" sx={{ color: '#cbd5e1', fontWeight: 600 }}>
                                             {t.passed ? '✅' : '❌'} Test {i + 1}
                                         </Typography>
@@ -346,13 +363,14 @@ export const Arena: React.FC = () => {
                                             variant="caption"
                                             sx={{
                                                 fontFamily: 'monospace',
-                                                bgcolor: 'rgba(0, 0, 0, 0.3)', // Darker background for output
+                                                bgcolor: 'rgba(0, 0, 0, 0.3)', 
                                                 color: t.passed ? '#94a3b8' : '#fca5a5',
                                                 p: 1.5,
                                                 borderRadius: 2,
                                                 border: '1px solid rgba(255,255,255,0.05)',
                                                 whiteSpace: 'pre-wrap',
-                                                wordBreak: 'break-all'
+                                                wordBreak: 'break-all',
+                                                overflowX: 'auto'
                                             }}
                                         >
                                             {t.stdout || 'No output'}
@@ -365,8 +383,8 @@ export const Arena: React.FC = () => {
 
                     <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', display: { xs: 'none', lg: 'block' } }} />
 
-                    {/* Leaderboard */}
-                    <Box sx={{ pb: { xs: 4, lg: 0 } }}>
+                    {/* Leaderboard - WRAPPED FOR STRICT WIDTH CONTROL */}
+                    <Box sx={{ pb: { xs: 2, lg: 0 }, width: '100%', overflowX: 'hidden' }}>
                         <Leaderboard key={leaderboardKey} challengeId={challengeId as string} />
                     </Box>
                 </Stack>
@@ -376,11 +394,11 @@ export const Arena: React.FC = () => {
             <Box 
                 sx={{ 
                     width: { xs: '100%', lg: '60%' }, 
-                    // Fixed height block on mobile so it sits cleanly at the bottom
+                    maxWidth: '100%',
                     height: { xs: '500px', md: '600px', lg: '100vh' }, 
-                    p: { xs: 2, md: 3, lg: 4 }, 
-                    pt: { xs: 0, lg: 4 }, // Remove top padding on mobile to pull it closer to the leaderboard
-                    pb: { xs: 4, lg: 4 }, // Extra padding at the very bottom of mobile
+                    p: { xs: 1.5, md: 3, lg: 4 }, // Edge-to-edge on mobile
+                    pt: { xs: 0, lg: 4 }, 
+                    pb: { xs: 3, lg: 4 },
                     display: 'flex', 
                     alignItems: 'stretch', 
                     justifyContent: 'center' 
@@ -390,7 +408,9 @@ export const Arena: React.FC = () => {
                     elevation={0} 
                     sx={{ 
                         flex: 1, 
-                        borderRadius: 3, 
+                        width: '100%',
+                        maxWidth: '100%',
+                        borderRadius: { xs: 2, sm: 3 }, // Slightly sharper corners on mobile to save space
                         overflow: 'hidden', 
                         border: '1px solid rgba(255,255,255,0.1)', 
                         backgroundColor: '#020617', 
@@ -417,16 +437,17 @@ export const Arena: React.FC = () => {
                             Python
                         </Typography>
                     </Box>
-                    <Box sx={{ flex: 1, position: 'relative' }}>
+                    <Box sx={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
                         <Editor 
                             height="100%" 
+                            width="100%"
                             defaultLanguage="python" 
                             theme="vs-dark" 
                             value={code} 
                             onChange={(value) => setCode(value || '')} 
                             options={{ 
                                 minimap: { enabled: false }, 
-                                fontSize: 14, 
+                                fontSize: 13, // Slightly smaller text on mobile
                                 padding: { top: 16, bottom: 16 }, 
                                 scrollBeyondLastLine: false, 
                                 wordWrap: 'on',
