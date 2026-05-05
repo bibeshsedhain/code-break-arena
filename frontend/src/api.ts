@@ -4,7 +4,7 @@ import { auth } from './firebase';
 // Initialize the base Axios instance pointing to the Django API
 const apiClient = axios.create({
     // VITE FIX: Use the environment variable, but fallback to localhost for local testing
-    baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/',
+    baseURL: import.meta.env.VITE_API_URL || 'https://code-break-arena.onrender.com/api',
     headers: {
         'Content-Type': 'application/json',
     },
