@@ -45,7 +45,15 @@ def evaluate_code_submission(user, challenge, user_code, client_time_taken=0):
     Executes user code against hidden test cases using the JDoodle API.
     Evaluates correctness and tracks human solve time for leaderboards.
     """
-    # 1. Retrieve hidden test cases
+    # 1. IRONCLAD GUARD: Fail fast if code is empty before hitting the DB
+    if not user_code or not user_code.strip():
+        return {
+            "status": "ERROR",
+            "execution_time": 0.0,
+            "results": [{"error": "Code cannot be empty", "passed": False}]
+        }
+
+    # 2. Retrieve hidden test cases (now safe from empty submissions)
     test_cases = challenge.test_cases.filter(hidden_flag=True)
     results = []
     all_passed = True
@@ -89,7 +97,7 @@ def evaluate_code_submission(user, challenge, user_code, client_time_taken=0):
                     all_passed = False
                     status_result = "FAIL"
 
-                # 2. Check for JDoodle internal errors (Quota hit, syntax crash)
+                # Check for JDoodle internal errors (Quota hit, syntax crash)
                 if data.get('error') or data.get('statusCode') not in [200, 201]:
                     if status_result != "FAIL":
                         status_result = "ERROR"
@@ -122,7 +130,8 @@ def evaluate_code_submission(user, challenge, user_code, client_time_taken=0):
             })
 
     # 3. Save Attempt and Update Metrics (Requires Authenticated User)
-    if user.is_authenticated:
+    # Ensure user exists and is authenticated before saving
+    if user and user.is_authenticated:
         # Log the raw attempt
         Attempt.objects.create(
             user=user,
@@ -138,7 +147,7 @@ def evaluate_code_submission(user, challenge, user_code, client_time_taken=0):
         if status_result == "PASS":
             metrics.completed = True
             
-            # --- NEW: Save React Stopwatch Time to the existing `best_time` column ---
+            # Save React Stopwatch Time to the existing `best_time` column
             try:
                 time_taken = float(client_time_taken)
                 if time_taken > 0:
@@ -153,8 +162,6 @@ def evaluate_code_submission(user, challenge, user_code, client_time_taken=0):
 
     return {
         "status": status_result,
-        # We still return JDoodle's execution time so your Arena UI can display it
-        # on the individual test cases, but it no longer controls the leaderboard!
         "execution_time": round(total_execution_time, 3), 
         "results": results
     }
